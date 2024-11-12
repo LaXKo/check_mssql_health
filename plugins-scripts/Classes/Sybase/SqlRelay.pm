@@ -8,16 +8,11 @@ sub check_connect {
   my $stderrvar;
   my $dbi_options = { RaiseError => 1, AutoCommit => $self->opts->commit, PrintError => 1 };
   my $dsn = "DBI:SQLRelay:";
+  my $dbname;
   $dsn .= sprintf ";host=%s", $self->opts->hostname;
   $dsn .= sprintf ";port=%s", $self->opts->port;
   $dsn .= sprintf ";socket=%s", $self->opts->socket;
-  if ($self->opts->currentdb) {
-    if (index($self->opts->currentdb,"-") != -1) {
-      $dsn .= sprintf ";database=\"%s\"", $self->opts->currentdb;
-    } else {
-      $dsn .= sprintf ";database=%s", $self->opts->currentdb;
-    }
-  }
+
   $self->set_variable("dsn", $dsn);
   eval {
     require DBI;
@@ -34,6 +29,10 @@ sub check_connect {
         $self->opts->password,
         $dbi_options)) {
       $Monitoring::GLPlugin::DB::session = $self->{handle};
+
+      if ($self->opts->currentdb) {
+        $self->{handle}->do("USE " . $self->opts->currentdb);
+      }
     }
     $self->{tac} = Time::HiRes::time();
     *STDERR = *SAVEERR;
